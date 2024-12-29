@@ -1,0 +1,106 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  username      String    @unique
+  email         String    @unique
+  password      String
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  topics        Topic[]   @relation("TopicAuthor")
+  posts         Post[]    @relation("PostAuthor")
+  dumps         Dump[]    @relation("DumpSubmitter")
+}
+
+model Topic {
+  id        String   @id @default(cuid())
+  title     String
+  forumId   Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  author    User     @relation("TopicAuthor", fields: [authorId], references: [id])
+  authorId  String
+  posts     Post[]
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  author    User     @relation("PostAuthor", fields: [authorId], references: [id])
+  authorId  String
+  topic     Topic    @relation(fields: [topicId], references: [id])
+  topicId   String
+}
+
+model System {
+  id          String  @id @default(cuid())
+  name        String
+  shortName   String  @unique
+  description String? @db.Text
+  dumps       Dump[]
+}
+
+model Dump {
+  id          String    @id @default(cuid())
+  title       String
+  region      String
+  languages   String[]
+  status      Int       @default(0)
+  isNew       Boolean   @default(true)
+  dateAdded   DateTime  @default(now())
+  discNumber  String?
+  label       String?
+  system      System    @relation(fields: [systemId], references: [id])
+  systemId    String
+  submitter   User      @relation("DumpSubmitter", fields: [submitterId], references: [id])
+  submitterId String
+  tracks      Track[]
+  ringCode    RingCode? @relation("DumpRingCode")
+  comments    String?   @db.Text
+  libCrypt    Boolean   @default(false)
+  edc         Boolean   @default(false)
+  antiModchip Boolean   @default(false)
+  error       String?   @db.Text
+}
+
+model Track {
+  id        String  @id @default(cuid())
+  number    Int
+  type      Int
+  pregap    Int     @default(0)
+  size      BigInt
+  crc32     String?
+  md5       String?
+  sha1      String?
+  dump      Dump    @relation(fields: [dumpId], references: [id])
+  dumpId    String
+  offset    Int?
+  sectors   Int?
+}
+
+model RingCode {
+  id      String @id @default(cuid())
+  type    String
+  value   String
+  dump    Dump   @relation("DumpRingCode", fields: [dumpId], references: [id])
+  dumpId  String @unique
+}
+
+enum Role {
+  USER
+  ADMIN
+  MODERATOR
+}
