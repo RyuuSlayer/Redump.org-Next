@@ -74,6 +74,17 @@ model Dump {
   edc         Boolean   @default(false)
   antiModchip Boolean   @default(false)
   error       String?   @db.Text
+  serialNumber String?
+  version     String?
+  exeDate     DateTime?
+  publisher   String?
+  developer   String?
+  barcode     String?
+  category    Int       @default(0)
+  innerRingCode String?
+  outerRingCode String?
+  mouldSID    String?
+  externalLinks ExternalLink[]
 }
 
 model Track {
@@ -97,6 +108,14 @@ model RingCode {
   value   String
   dump    Dump   @relation("DumpRingCode", fields: [dumpId], references: [id])
   dumpId  String @unique
+}
+
+model ExternalLink {
+  id        String   @id @default(cuid())
+  type      String   // e.g., "mobygames", "cdcovers"
+  url       String
+  dump      Dump     @relation(fields: [dumpId], references: [id])
+  dumpId    String
 }
 
 enum Role {

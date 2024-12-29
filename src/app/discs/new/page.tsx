@@ -1,6 +1,8 @@
-import { Suspense } from 'react';
-import prisma from '@/lib/prisma';
-import NewDumpForm from './NewDumpForm';
+import { Suspense } from 'react'
+import { redirect } from 'next/navigation'
+import { auth } from '@/app/api/auth/[...nextauth]/route'
+import prisma from '@/lib/prisma'
+import NewDumpForm from './NewDumpForm'
 
 async function getSystems() {
   const systems = await prisma.system.findMany({
@@ -12,19 +14,26 @@ async function getSystems() {
     orderBy: {
       name: 'asc',
     },
-  });
-  return systems;
+  })
+  return systems
 }
 
 export default async function NewDiscPage() {
-  const systems = await getSystems();
+  const session = await auth()
+  const isAdmin = session?.user?.role === 'ADMIN'
+
+  if (!isAdmin) {
+    redirect('/')
+  }
+
+  const systems = await getSystems()
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-8">Add New Dump</h1>
+      <h1 className="text-3xl font-bold mb-8">New Disc</h1>
       <Suspense fallback={<div>Loading form...</div>}>
         <NewDumpForm systems={systems} />
       </Suspense>
     </div>
-  );
+  )
 }

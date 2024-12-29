@@ -27,6 +27,33 @@ export async function POST(request: Request) {
         edc: formData.get('edc') === 'true',
         antiModchip: formData.get('antiModchip') === 'true',
         submitterId: 'temp-user-id', // TODO: Get from auth session
+        // New fields
+        serialNumber: formData.get('serialNumber') as string,
+        version: formData.get('version') as string,
+        exeDate: formData.get('exeDate') ? new Date(formData.get('exeDate') as string) : null,
+        publisher: formData.get('publisher') as string,
+        developer: formData.get('developer') as string,
+        barcode: formData.get('barcode') as string,
+        category: parseInt(formData.get('category') as string) || 0,
+        innerRingCode: formData.get('innerRingCode') as string,
+        outerRingCode: formData.get('outerRingCode') as string,
+        mouldSID: formData.get('mouldSID') as string,
+        tracks: {
+          create: JSON.parse(formData.get('tracks') as string || '[]').map((track: any) => ({
+            number: track.number,
+            type: track.type,
+            pregap: track.pregap,
+            size: track.size,
+            crc32: track.crc32,
+            md5: track.md5,
+            sha1: track.sha1,
+            offset: track.offset,
+            sectors: track.sectors,
+          })),
+        },
+      },
+      include: {
+        tracks: true,
       },
     });
 

@@ -4,7 +4,7 @@ import { signOut, useSession } from 'next-auth/react'
 import Link from 'next/link'
 
 export default function Header() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
 
   return (
     <header className="bg-gray-800 text-white">
@@ -30,13 +30,15 @@ export default function Header() {
             </nav>
           </div>
           <div className="flex items-center space-x-4">
-            {session ? (
+            {status === 'loading' ? (
+              <div className="text-sm">Loading...</div>
+            ) : session ? (
               <>
                 <span className="text-sm">
-                  Welcome, {session.user.username}
+                  Welcome, {session.user.username} ({session.user.role})
                 </span>
                 <button
-                  onClick={() => signOut()}
+                  onClick={() => signOut({ callbackUrl: '/login' })}
                   className="text-sm hover:text-gray-300"
                 >
                   Sign out

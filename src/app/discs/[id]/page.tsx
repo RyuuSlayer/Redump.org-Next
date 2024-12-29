@@ -1,7 +1,10 @@
-import { prisma } from '@/lib/db'
+import { PrismaClient } from '@prisma/client'
 import { formatDate } from '@/lib/utils'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import { auth } from '@/app/api/auth/[...nextauth]/route'
+
+const prisma = new PrismaClient()
 
 async function getDumpDetails(id: string) {
   const dump = await prisma.dump.findUnique({
@@ -28,13 +31,31 @@ async function getDumpDetails(id: string) {
 
 export default async function DiscPage({ params }: { params: { id: string } }) {
   const dump = await getDumpDetails(params.id)
+  const session = await auth()
+  const isAdmin = session?.user?.role === 'ADMIN'
 
   return (
     <div className="space-y-6">
       <div className="bg-white shadow rounded-lg p-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">
-          {dump.title}
-        </h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">{dump.title}</h1>
+          {isAdmin && (
+            <div className="flex gap-4">
+              <Link
+                href={`/discs/${dump.id}/edit`}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Edit
+              </Link>
+              <Link
+                href={`/discs/edit?id=${dump.id}`}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Legacy Edit
+              </Link>
+            </div>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>

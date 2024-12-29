@@ -1,17 +1,26 @@
-import NextAuth from "next-auth"
 import { auth } from "./app/api/auth/[...nextauth]/route"
+import { NextResponse } from "next/server"
+import { NextRequestWithAuth } from "next-auth/middleware"
 
-export default auth((req) => {
-  // Protect /admin routes
-  const isAdmin = req.auth?.user?.role === "ADMIN"
-  const isAdminRoute = req.nextUrl.pathname.startsWith("/admin")
+export default async function middleware(request: NextRequestWithAuth) {
+  const session = await auth()
 
-  if (isAdminRoute && !isAdmin) {
-    return Response.redirect(new URL("/login", req.url))
+  // If user is on login page but already authenticated, redirect to home
+  if (request.nextUrl.pathname === "/login" && session) {
+    return NextResponse.redirect(new URL("/", request.url))
   }
-})
 
-// Optionally, don't invoke Middleware on some paths
+  // If user is trying to access admin routes without admin role
+  if (
+    request.nextUrl.pathname.startsWith("/admin") &&
+    session?.user?.role !== "ADMIN"
+  ) {
+    return NextResponse.redirect(new URL("/login", request.url))
+  }
+
+  return NextResponse.next()
+}
+
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/admin/:path*", "/login"]
 }

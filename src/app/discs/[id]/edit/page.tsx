@@ -10,6 +10,7 @@ async function getDump(id: string) {
     },
     include: {
       system: true,
+      tracks: true,
     },
   });
 

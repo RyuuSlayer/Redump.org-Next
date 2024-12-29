@@ -12,6 +12,7 @@ export const { auth, handlers: { GET, POST } } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.username || !credentials?.password) {
+          console.log("Missing credentials")
           return null
         }
 
@@ -22,12 +23,15 @@ export const { auth, handlers: { GET, POST } } = NextAuth({
         })
 
         if (!user) {
+          console.log("User not found:", credentials.username)
           return null
         }
 
+        console.log("Found user:", user.username, "role:", user.role)
         const isValid = await compare(credentials.password, user.password)
 
         if (!isValid) {
+          console.log("Invalid password")
           return null
         }
 
@@ -40,11 +44,15 @@ export const { auth, handlers: { GET, POST } } = NextAuth({
       }
     })
   ],
+  pages: {
+    signIn: '/login',
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token.role = user.role
         token.username = user.username
+        console.log("JWT callback - user:", user.username, "role:", user.role)
       }
       return token
     },
@@ -52,11 +60,16 @@ export const { auth, handlers: { GET, POST } } = NextAuth({
       if (token) {
         session.user.role = token.role
         session.user.username = token.username
+        console.log("Session callback - user:", session.user.username, "role:", session.user.role)
       }
       return session
+    },
+    async redirect({ url, baseUrl }) {
+      // Always redirect to home page after sign in
+      return baseUrl
     }
   },
-  pages: {
-    signIn: '/login',
+  session: {
+    strategy: "jwt",
   },
 })

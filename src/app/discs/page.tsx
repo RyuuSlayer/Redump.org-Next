@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import { formatDate } from '@/lib/utils'
 import Link from 'next/link'
+import { auth } from '@/app/api/auth/[...nextauth]/route'
 
 const prisma = new PrismaClient()
 
@@ -61,6 +62,8 @@ export default async function DiscsPage({
   const { discs, total, page, totalPages } = await getDiscs(searchParams)
   const sort = typeof searchParams.sort === 'string' ? searchParams.sort : 'added'
   const dir = typeof searchParams.dir === 'string' ? searchParams.dir : 'desc'
+  const session = await auth()
+  const isAdmin = session?.user?.role === 'ADMIN'
 
   return (
     <div className="space-y-6">
@@ -68,6 +71,14 @@ export default async function DiscsPage({
         <h1 className="text-2xl font-bold text-gray-900">
           Discs ({total})
         </h1>
+        {isAdmin && (
+          <Link
+            href="/discs/new"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            New Disc
+          </Link>
+        )}
       </div>
 
       <div className="bg-white shadow rounded-lg overflow-hidden">
