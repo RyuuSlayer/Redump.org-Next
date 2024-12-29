@@ -33,7 +33,7 @@ GRANT ALL PRIVILEGES ON DATABASE redump TO redump_admin;
 
 2. Create a `.env` file in the root directory with the following content:
 ```env
-DATABASE_URL="postgresql://redump-admin:your_password@localhost:5432/redump"
+DATABASE_URL="postgresql://your_username:your_password@postgres_ip:5432/redump"
 NEXTAUTH_SECRET="your-secret-key"  # Generate with: openssl rand -base64 32
 NEXTAUTH_URL="http://localhost:3000"
 ```

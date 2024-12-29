@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,7 +10,7 @@ const trackSchema = z.object({
   number: z.number().int().min(1),
   type: z.enum(['data', 'audio']),
   pregap: z.number().int().min(0).default(0),
-  size: z.number().int().min(0),
+  size: z.string().or(z.number()).transform(val => val.toString()),
   crc32: z.string().optional(),
   md5: z.string().optional(),
   sha1: z.string().optional(),
@@ -24,7 +24,7 @@ const discSchema = z.object({
     .min(1, 'Title is required')
     .max(255, 'Title must not exceed 255 characters'),
   region: z.string().min(1, 'Region is required'),
-  languages: z.array(z.string()),
+  languages: z.array(z.string()).default([]),
   status: z.number().int().min(0),
   discNumber: z.string().optional(),
   label: z.string().optional(),
@@ -33,10 +33,9 @@ const discSchema = z.object({
   libCrypt: z.boolean().default(false),
   edc: z.boolean().default(false),
   antiModchip: z.boolean().default(false),
-  // New fields
   serialNumber: z.string().optional(),
   version: z.string().optional(),
-  exeDate: z.string().optional(), // Will be converted to DateTime in API
+  exeDate: z.string().optional(),
   publisher: z.string().optional(),
   developer: z.string().optional(),
   barcode: z.string().optional(),
@@ -51,7 +50,7 @@ type DiscFormData = z.infer<typeof discSchema>;
 type TrackData = z.infer<typeof trackSchema>;
 
 interface DiscFormProps {
-  initialData?: DiscFormData;
+  initialData?: Partial<DiscFormData>;
   onSubmit: (data: DiscFormData) => Promise<void>;
   systems: Array<{ id: string; name: string; shortName: string }>;
   isEdit?: boolean;
@@ -64,16 +63,40 @@ export default function DiscForm({ initialData, onSubmit, systems, isEdit = fals
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isValid },
     watch,
+    trigger,
   } = useForm<DiscFormData>({
     resolver: zodResolver(discSchema),
-    defaultValues: initialData,
+    defaultValues: {
+      ...initialData,
+      languages: initialData?.languages || [],
+      libCrypt: initialData?.libCrypt || false,
+      edc: initialData?.edc || false,
+      antiModchip: initialData?.antiModchip || false,
+      category: initialData?.category || 0,
+      tracks: initialData?.tracks || [],
+    },
+    mode: 'onChange',
   });
+
+  useEffect(() => {
+    // Validate form on mount
+    trigger();
+  }, [trigger]);
 
   const selectedSystem = watch('systemId');
 
   const handleFormSubmit = async (data: DiscFormData) => {
+    console.log('Form submitted with data:', { ...data, tracks });
+    console.log('Form validation errors:', errors);
+    console.log('Form is valid:', isValid);
+
+    if (!isValid) {
+      console.log('Form validation failed');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await onSubmit({ ...data, tracks });
@@ -89,7 +112,7 @@ export default function DiscForm({ initialData, onSubmit, systems, isEdit = fals
       number: tracks.length + 1,
       type: 'data',
       pregap: 0,
-      size: 0,
+      size: '0',
     }]);
   };
 
@@ -104,7 +127,13 @@ export default function DiscForm({ initialData, onSubmit, systems, isEdit = fals
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+    <form 
+      onSubmit={(e) => {
+        console.log('Form submit event triggered');
+        handleSubmit(handleFormSubmit)(e);
+      }} 
+      className="space-y-6"
+    >
       <div className="space-y-4">
         {/* Basic Information */}
         <fieldset className="border rounded-md p-4">
@@ -278,9 +307,9 @@ export default function DiscForm({ initialData, onSubmit, systems, isEdit = fals
                       Size
                     </label>
                     <input
-                      type="number"
+                      type="text"
                       value={track.size}
-                      onChange={(e) => updateTrack(index, 'size', parseInt(e.target.value))}
+                      onChange={(e) => updateTrack(index, 'size', e.target.value)}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                     />
                   </div>
@@ -312,7 +341,7 @@ export default function DiscForm({ initialData, onSubmit, systems, isEdit = fals
             <button
               type="button"
               onClick={addTrack}
-              className="mt-4 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="mt-4 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
             >
               Add Track
             </button>
@@ -378,7 +407,24 @@ export default function DiscForm({ initialData, onSubmit, systems, isEdit = fals
         </fieldset>
       </div>
 
-      <div className="flex justify-end">
+      {/* Debug info */}
+      {Object.keys(errors).length > 0 && (
+        <div className="bg-red-50 p-4 rounded-md">
+          <h3 className="text-red-800 font-medium">Form Validation Errors:</h3>
+          <pre className="mt-2 text-sm text-red-700">
+            {JSON.stringify(errors, null, 2)}
+          </pre>
+        </div>
+      )}
+
+      <div className="flex justify-end space-x-3">
+        <button
+          type="button"
+          onClick={() => window.history.back()}
+          className="inline-flex justify-center rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+        >
+          Cancel
+        </button>
         <button
           type="submit"
           disabled={isSubmitting}
